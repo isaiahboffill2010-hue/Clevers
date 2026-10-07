@@ -1,0 +1,33 @@
+{
+  "name": "@remote-browser/browser-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/index.ts",
+    "lint": "biome check .",
+    "start": "node dist/index.js",
+    "test": "vitest run --config vitest.config.ts",
+    "test:integration": "pnpm --dir ../test-site build && vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/websocket": "^11.3.3",
+    "@remote-browser/protocol": "workspace:*",
+    "@remote-browser/security": "workspace:*",
+    "fastify": "5.6.1",
+    "playwright": "1.63.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@remote-browser/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/ws": "^8.18.2",
+    "tsx": "4.20.6",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

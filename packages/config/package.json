@@ -1,0 +1,11 @@
+{
+  "name": "@remote-browser/config",
+  "version": "0.0.0",
+  "private": true,
+  "files": ["*.json"],
+  "exports": {
+    "./node.json": "./node.json",
+    "./nextjs.json": "./nextjs.json",
+    "./package.json": "./package.json"
+  }
+}

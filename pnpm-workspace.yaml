@@ -1,0 +1,30 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  playwright: true
+
+catalog:
+  "@biomejs/biome": 2.5.15
+  "@types/node": 24.10.0
+  "@types/react": 19.2.2
+  "@types/react-dom": 19.2.2
+  next: 16.4.0
+  react: 19.3.0
+  react-dom: 19.3.0
+  typescript: 7.0.2
+  vitest: 5.0.3
+
+minimumReleaseAgeExclude:
+  - "@next/env@16.4.0"
+  - "@next/swc-darwin-arm64@16.4.0"
+  - "@next/swc-darwin-x64@16.4.0"
+  - "@next/swc-linux-arm64-gnu@16.4.0"
+  - "@next/swc-linux-arm64-musl@16.4.0"
+  - "@next/swc-linux-x64-gnu@16.4.0"
+  - "@next/swc-linux-x64-musl@16.4.0"
+  - "@next/swc-win32-arm64-msvc@16.4.0"
+  - "@next/swc-win32-x64-msvc@16.4.0"
+  - next@16.4.0

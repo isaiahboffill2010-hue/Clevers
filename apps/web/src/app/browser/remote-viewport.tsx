@@ -3,10 +3,15 @@
 import { FRAME_HEADER_BYTES, mapContainedPoint } from "@remote-browser/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const HTTP_BASE = process.env.NEXT_PUBLIC_BROWSER_SERVICE_HTTP ?? "http://127.0.0.1:3001";
-const WS_BASE = process.env.NEXT_PUBLIC_BROWSER_SERVICE_WS ?? "ws://127.0.0.1:3001";
+const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV !== "production";
+const HTTP_BASE =
+  process.env.NEXT_PUBLIC_BROWSER_SERVICE_HTTP ??
+  (IS_LOCAL_DEVELOPMENT ? "http://127.0.0.1:3001" : "");
+const WS_BASE =
+  process.env.NEXT_PUBLIC_BROWSER_SERVICE_WS ?? (IS_LOCAL_DEVELOPMENT ? "ws://127.0.0.1:3001" : "");
 const DEFAULT_URL =
-  process.env.NEXT_PUBLIC_BROWSER_INITIAL_URL ?? "http://127.0.0.1:3002/phase3/approved";
+  process.env.NEXT_PUBLIC_BROWSER_INITIAL_URL ??
+  (IS_LOCAL_DEVELOPMENT ? "http://127.0.0.1:3002/phase3/approved" : "https://example.com/");
 
 type ConnectionStatus = "starting" | "connecting" | "connected" | "disconnected" | "error";
 
@@ -32,6 +37,9 @@ export function RemoteViewport() {
   const moveFrame = useRef<number | null>(null);
 
   const connectStream = useCallback(async (id: string) => {
+    if (!HTTP_BASE || !WS_BASE) {
+      throw new Error("The production browser service endpoints are not configured");
+    }
     setConnection("connecting");
     setError("");
     const ticketResponse = await fetch(

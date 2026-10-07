@@ -118,6 +118,19 @@ describe("real Chromium browser lifecycle", () => {
     expect(redirected.title).toBe("Phase 3 Approved Destination");
   });
 
+  it("loads CSS, JavaScript, images, fetch, blob, and data resources", async () => {
+    const manager = createManager();
+    const created = await manager.createSession();
+    const result = await manager.navigate(created.sessionId, `${TEST_SITE_URL}/compatibility`);
+    expect(result.title).toBe("Resource Compatibility Fixture");
+    const session = manager.getSessionForTest(created.sessionId);
+    await expectEventually(
+      async () => (await session.elementValueForTest("#compatibility-status")) === "ready",
+    );
+    const image = await session.elementBoxForTest('img[alt="fixture"]');
+    expect(image?.width).toBe(24);
+  });
+
   it("rejects blocked inputs before Chromium and keeps the session usable", async () => {
     const manager = createManager();
     const created = await manager.createSession();

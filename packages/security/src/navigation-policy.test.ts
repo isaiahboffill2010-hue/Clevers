@@ -144,3 +144,31 @@ describe("NavigationPolicy DNS validation", () => {
     expect(error).toMatchObject({ code: "NAVIGATION_REDIRECT_BLOCKED" });
   });
 });
+
+describe("NavigationPolicy network-resource validation", () => {
+  it.each(["ws://example.com/socket", "wss://example.com/socket"])(
+    "allows public WebSocket destination %s",
+    async (input) => {
+      await expect(policy().validateNetworkRequest(input)).resolves.toBeDefined();
+    },
+  );
+
+  it("keeps WebSocket schemes blocked for user navigation", async () => {
+    await expectCode("wss://example.com/socket", "NAVIGATION_SCHEME_BLOCKED");
+  });
+
+  it.each(["ws://127.0.0.1/socket", "wss://metadata.internal/socket"])(
+    "blocks unsafe WebSocket destination %s",
+    async (input) => {
+      await expect(policy().validateNetworkRequest(input)).rejects.toMatchObject({
+        code: "NAVIGATION_PRIVATE_ADDRESS",
+      });
+    },
+  );
+
+  it("applies the content policy to WebSockets", async () => {
+    await expect(
+      policy().validateNetworkRequest("wss://adult.example/socket"),
+    ).rejects.toMatchObject({ code: "NAVIGATION_CONTENT_BLOCKED" });
+  });
+});

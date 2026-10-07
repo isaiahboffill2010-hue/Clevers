@@ -70,10 +70,7 @@ export class NavigationPolicy {
     return this.#validateNetworkDestination(input, redirect, false);
   }
 
-  async validateNetworkRequest(
-    input: string,
-    redirect = false,
-  ): Promise<ApprovedNavigation> {
+  async validateNetworkRequest(input: string, redirect = false): Promise<ApprovedNavigation> {
     return this.#validateNetworkDestination(input, redirect, true);
   }
 

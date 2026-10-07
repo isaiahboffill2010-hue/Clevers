@@ -32,6 +32,13 @@ export const ENABLE_LOCAL_TEST_TARGET =
   process.env.ENABLE_LOCAL_TEST_TARGET === "true" || process.env.NODE_ENV !== "production";
 export const ENABLE_NAVIGATION_DIAGNOSTICS =
   process.env.NODE_ENV !== "production" && process.env.NAVIGATION_DIAGNOSTICS === "true";
+export const WEB_ALLOWED_ORIGINS = (
+  process.env.BROWSER_SERVICE_ALLOWED_ORIGINS ?? "http://127.0.0.1:3000,http://localhost:3000"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+export const REQUIRE_WEB_ORIGIN = process.env.NODE_ENV === "production";
 
 export const EXPECTED_TEST_SITE_TITLE = "Remote Browser Test Site";
 export const EXPECTED_TEST_SITE_TEXT = "Phase 1 test fixture is running.";

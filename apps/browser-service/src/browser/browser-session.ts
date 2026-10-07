@@ -47,7 +47,6 @@ export class BrowserSession implements ManagedSession {
   readonly #lifecycle = new SessionLifecycle();
   #context: BrowserContext | undefined;
   #page: Page | undefined;
-  #redirectInterceptor: CDPSession | undefined;
   #destroyPromise: Promise<void> | undefined;
   #handlingUnexpectedTermination = false;
   #navigationPolicyError: NavigationPolicyError | undefined;
@@ -347,11 +346,27 @@ export class BrowserSession implements ManagedSession {
       acceptDownloads: false,
       deviceScaleFactor: 1,
       locale: "en-US",
+      serviceWorkers: "block",
       viewport: BROWSER_VIEWPORT,
     });
     this.#page = await this.#context.newPage();
     await this.#installRedirectInterceptor(this.#page);
     if (ENABLE_NAVIGATION_DIAGNOSTICS) {
+      this.#page.on("response", (response) => {
+        if (response.status() < 400) return;
+        this.#logger.warn(
+          {
+            sessionId: this.id,
+            resourceType: response.request().resourceType(),
+            ...safeUrlFields(response.url()),
+            httpStatus: response.status(),
+            policyStage: "chromium-response",
+            errorCategory: "HTTP_ERROR_RESPONSE",
+            policyBlocked: false,
+          },
+          "browser resource response failed",
+        );
+      });
       this.#page.on("requestfailed", (request) => {
         this.#logger.warn(
           {
@@ -360,8 +375,35 @@ export class BrowserSession implements ManagedSession {
             ...safeUrlFields(request.url()),
             policyStage: "chromium-network",
             errorCategory: networkFailureCategory(request.failure()?.errorText),
+            policyBlocked: request.failure()?.errorText === "net::ERR_BLOCKED_BY_CLIENT",
           },
           "browser resource request failed",
+        );
+      });
+      this.#page.on("pageerror", (error) => {
+        this.#logger.warn(
+          {
+            sessionId: this.id,
+            policyStage: "page-runtime",
+            errorCategory: error.name || "PAGE_ERROR",
+            policyBlocked: false,
+          },
+          "browser page runtime error",
+        );
+      });
+      this.#page.on("console", (message) => {
+        if (message.type() !== "error") return;
+        const location = message.location();
+        this.#logger.warn(
+          {
+            sessionId: this.id,
+            resourceType: "console",
+            ...safeUrlFields(location.url),
+            policyStage: "page-console",
+            errorCategory: "CONSOLE_ERROR",
+            policyBlocked: false,
+          },
+          "browser page console error",
         );
       });
     }
@@ -390,6 +432,7 @@ export class BrowserSession implements ManagedSession {
               policyStage: "browser-context-route",
               errorCategory:
                 error instanceof NavigationPolicyError ? error.code : "RESOURCE_POLICY_FAILED",
+              policyBlocked: true,
             },
             "browser resource request blocked",
           );
@@ -414,6 +457,7 @@ export class BrowserSession implements ManagedSession {
               policyStage: "websocket-route",
               errorCategory:
                 error instanceof NavigationPolicyError ? error.code : "RESOURCE_POLICY_FAILED",
+              policyBlocked: true,
             },
             "browser resource request blocked",
           );
@@ -432,7 +476,6 @@ export class BrowserSession implements ManagedSession {
 
   async #installRedirectInterceptor(page: Page): Promise<void> {
     const session = await this.#requireContext().newCDPSession(page);
-    this.#redirectInterceptor = session;
     session.on("Fetch.requestPaused", (event: CdpResponsePausedEvent) => {
       void this.#handlePausedResponse(session, event);
     });
@@ -441,10 +484,7 @@ export class BrowserSession implements ManagedSession {
     });
   }
 
-  async #handlePausedResponse(
-    session: CDPSession,
-    event: CdpResponsePausedEvent,
-  ): Promise<void> {
+  async #handlePausedResponse(session: CDPSession, event: CdpResponsePausedEvent): Promise<void> {
     const location = event.responseHeaders?.find(
       (header) => header.name.toLowerCase() === "location",
     )?.value;
@@ -472,6 +512,7 @@ export class BrowserSession implements ManagedSession {
             policyStage: "redirect-response",
             errorCategory:
               error instanceof NavigationPolicyError ? error.code : "RESOURCE_POLICY_FAILED",
+            policyBlocked: true,
           },
           "browser redirect blocked",
         );
@@ -498,7 +539,6 @@ export class BrowserSession implements ManagedSession {
     });
     const page = this.#page;
     const context = this.#context;
-    this.#redirectInterceptor = undefined;
     this.#page = undefined;
     this.#context = undefined;
 

@@ -6,10 +6,12 @@ import Fastify from "fastify";
 import type WebSocket from "ws";
 import { BrowserManager } from "../browser/browser-manager.js";
 import {
+  REQUIRE_WEB_ORIGIN,
   STREAM_AUTH_TIMEOUT_MS,
   STREAM_HEARTBEAT_INTERVAL_MS,
   STREAM_MAX_CONTROL_BYTES,
   STREAM_TICKET_TTL_MS,
+  WEB_ALLOWED_ORIGINS,
 } from "../config.js";
 import { SessionLimitError, SessionNotFoundError } from "../sessions/session-registry.js";
 import type { NavigationResult, ProofResult, SessionSnapshot } from "../sessions/session-types.js";
@@ -45,7 +47,7 @@ const emptyQuerySchema = { type: "object", additionalProperties: false, maxPrope
 export function createServer(options: ServerOptions = {}) {
   const server = Fastify({ logger: options.logger ?? false });
   void server.register(cors, {
-    origin: ["http://127.0.0.1:3000", "http://localhost:3000"],
+    origin: WEB_ALLOWED_ORIGINS,
     methods: ["GET", "HEAD", "POST", "DELETE", "OPTIONS"],
   });
   void server.register(websocket, { options: { maxPayload: STREAM_MAX_CONTROL_BYTES } });
@@ -157,6 +159,11 @@ export function createServer(options: ServerOptions = {}) {
 
   void server.register(async (streamServer) => {
     streamServer.get("/ws/browser", { websocket: true }, (socket, request) => {
+      const origin = request.headers.origin;
+      if (REQUIRE_WEB_ORIGIN && (!origin || !WEB_ALLOWED_ORIGINS.includes(origin))) {
+        socket.close(1008, "Origin not allowed");
+        return;
+      }
       let sessionId: string | undefined;
       let authenticated = false;
       let alive = true;

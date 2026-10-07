@@ -33,9 +33,13 @@ Application-level URL validation will not be treated as a sufficient SSRF defens
   and `.lan` are rejected.
 - Every DNS answer must classify as public unless the exact development exception applies.
 - IPv4, IPv6, and IPv4-mapped local/private/special addresses are rejected.
-- Main-frame redirects are fetched without automatic redirect following and their `Location` target
-  is validated before Chromium receives it.
+- Document responses are paused before redirect following and their relative or absolute `Location`
+  target is validated before Chromium continues.
 - Browser-context routing revalidates requests as defense in depth.
+- Public `ws:` and `wss:` page-created connections use the same hostname, DNS, IP, port, and content
+  checks; user-entered WebSocket URLs remain invalid top-level navigation.
+- Service workers are disabled because Playwright routing cannot reliably observe requests they
+  intercept. This prevents a service worker from bypassing application-level destination checks.
 
 ## Residual risk
 
